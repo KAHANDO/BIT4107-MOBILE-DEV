@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "606374071695",
+    "project_id": "sparedash",
+    "storage_bucket": "sparedash.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:606374071695:android:d0fec402abfaeab8930ffa",
+        "android_client_info": {
+          "package_name": "com.sparedash.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqyqDjirsVJ2QujA6hLzmsDTUzhfdXlR4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
