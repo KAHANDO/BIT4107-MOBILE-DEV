@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/cart_provider.dart';
+import '../providers/database_provider.dart';
 import 'simple_home.dart';
 import 'catalog_screen.dart';
 import 'shipping_screen.dart';
@@ -17,24 +17,25 @@ class CartScreen extends StatelessWidget {
         backgroundColor: const Color(0xFF2563EB),
         foregroundColor: Colors.white,
       ),
-      body: Consumer<CartProvider>(
-        builder: (context, cart, child) {
-          if (cart.items.isEmpty) {
+      body: Consumer<DatabaseProvider>(
+        builder: (context, provider, child) {
+          if (provider.cartItems.isEmpty) {
             return _buildEmptyCart(context);
           }
+
           return Column(
             children: [
               Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.all(16),
-                  itemCount: cart.items.length,
+                  itemCount: provider.cartItems.length,
                   itemBuilder: (context, index) {
-                    final item = cart.items[index];
-                    return _buildCartItem(context, item, cart);
+                    final item = provider.cartItems[index];
+                    return _buildCartItem(context, item, provider);
                   },
                 ),
               ),
-              _buildTotalSection(context, cart),
+              _buildTotalSection(context, provider),
             ],
           );
         },
@@ -90,7 +91,7 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCartItem(BuildContext context, CartItem item, CartProvider cart) {
+  Widget _buildCartItem(BuildContext context, Map<String, dynamic> item, DatabaseProvider provider) {
     return Card(
       elevation: 2,
       margin: const EdgeInsets.only(bottom: 12),
@@ -114,7 +115,7 @@ class CartScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item.name,
+                    item['name'],
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -122,7 +123,7 @@ class CartScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    item.price,
+                    'KES ${(item['price'] * item['quantity']).toStringAsFixed(0)}',
                     style: const TextStyle(
                       color: Color(0xFFf59e0b),
                       fontWeight: FontWeight.bold,
@@ -135,7 +136,7 @@ class CartScreen extends StatelessWidget {
             Row(
               children: [
                 IconButton(
-                  onPressed: () => cart.updateQuantity(item.id, item.quantity - 1),
+                  onPressed: () => provider.updateCartItem(item['id'], item['quantity'] - 1),
                   icon: const Icon(Icons.remove_circle_outline),
                   color: const Color(0xFF2563EB),
                   iconSize: 28,
@@ -143,7 +144,7 @@ class CartScreen extends StatelessWidget {
                 SizedBox(
                   width: 30,
                   child: Text(
-                    item.quantity.toString(),
+                    item['quantity'].toString(),
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 18,
@@ -152,7 +153,7 @@ class CartScreen extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  onPressed: () => cart.updateQuantity(item.id, item.quantity + 1),
+                  onPressed: () => provider.updateCartItem(item['id'], item['quantity'] + 1),
                   icon: const Icon(Icons.add_circle_outline),
                   color: const Color(0xFF2563EB),
                   iconSize: 28,
@@ -165,7 +166,7 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTotalSection(BuildContext context, CartProvider cart) {
+  Widget _buildTotalSection(BuildContext context, DatabaseProvider provider) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -181,13 +182,13 @@ class CartScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildTotalRow('Subtotal', 'KES ${cart.subtotal.toStringAsFixed(0)}'),
+          _buildTotalRow('Subtotal', 'KES ${provider.cartSubtotal.toStringAsFixed(0)}'),
           const SizedBox(height: 8),
-          _buildTotalRow('Delivery Fee', 'KES ${cart.deliveryFee.toStringAsFixed(0)}'),
+          _buildTotalRow('Delivery Fee', 'KES 500'),
           const Divider(height: 24, thickness: 1),
           _buildTotalRow(
             'Total',
-            'KES ${cart.total.toStringAsFixed(0)}',
+            'KES ${provider.cartTotal.toStringAsFixed(0)}',
             isTotal: true,
           ),
           const SizedBox(height: 16),
@@ -196,7 +197,7 @@ class CartScreen extends StatelessWidget {
             height: 55,
             child: ElevatedButton(
               onPressed: () {
-                _showCheckoutDialog(context, cart);
+                _showCheckoutDialog(context, provider);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFf59e0b),
@@ -242,7 +243,7 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  void _showCheckoutDialog(BuildContext context, CartProvider cart) {
+  void _showCheckoutDialog(BuildContext context, DatabaseProvider provider) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -257,7 +258,7 @@ class CartScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Total: KES ${cart.total.toStringAsFixed(0)}',
+              'Total: KES ${provider.cartTotal.toStringAsFixed(0)}',
               style: const TextStyle(color: Color(0xFFf59e0b), fontSize: 16),
             ),
             const SizedBox(height: 8),
@@ -266,12 +267,12 @@ class CartScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              cart.clearCart();
+            onPressed: () async {
+              // Create order in database
+              await provider.checkout('M-Pesa', 'Nairobi, Kenya');
               Navigator.pop(context);
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const SimpleHomeScreen()),
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Order placed successfully! Loyalty points added!')),
               );
             },
             child: const Text('Continue Shopping'),

@@ -1,5 +1,5 @@
 name: sparedash_app
-description: Spare parts ordering mobile application
+description: A comprehensive spare parts ordering mobile application
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -9,9 +9,26 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
+  # UI & Design
   cupertino_icons: ^1.0.6
   google_fonts: ^6.1.0
+
+  # State Management
   provider: ^6.1.1
+
+  # Database & Local Storage
+  sqflite: ^2.3.0
+  path: ^1.8.3
+  path_provider: ^2.1.0
+  shared_preferences: ^2.2.2
+
+  # Networking & API
+  http: ^1.1.0
+  connectivity_plus: ^5.0.2    # ADD THIS FOR NETWORK CHECKING
+
+  # Utilities
+  intl: ^0.18.1
 
 dev_dependencies:
   flutter_test:
@@ -20,3 +37,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/

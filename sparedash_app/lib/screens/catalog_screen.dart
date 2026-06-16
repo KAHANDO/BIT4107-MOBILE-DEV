@@ -4,10 +4,28 @@ import 'simple_home.dart';
 import 'cart_screen.dart';
 import 'shipping_screen.dart';
 import 'profile_screen.dart';
-import '../providers/cart_provider.dart';
+import '../providers/database_provider.dart';
 
-class CatalogScreen extends StatelessWidget {
+class CatalogScreen extends StatefulWidget {
   const CatalogScreen({super.key});
+
+  @override
+  State<CatalogScreen> createState() => _CatalogScreenState();
+}
+
+class _CatalogScreenState extends State<CatalogScreen> {
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final provider = Provider.of<DatabaseProvider>(context, listen: false);
+    await provider.loadProducts();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,8 +35,8 @@ class CatalogScreen extends StatelessWidget {
         backgroundColor: const Color(0xFF2563EB),
         foregroundColor: Colors.white,
         actions: [
-          Consumer<CartProvider>(
-            builder: (context, cart, child) {
+          Consumer<DatabaseProvider>(
+            builder: (context, provider, child) {
               return Stack(
                 children: [
                   IconButton(
@@ -30,7 +48,7 @@ class CatalogScreen extends StatelessWidget {
                     },
                     icon: const Icon(Icons.shopping_cart),
                   ),
-                  if (cart.itemCount > 0)
+                  if (provider.cartCount > 0)
                     Positioned(
                       right: 8,
                       top: 8,
@@ -40,17 +58,10 @@ class CatalogScreen extends StatelessWidget {
                           color: const Color(0xFFf59e0b),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        constraints: const BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
+                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
                         child: Text(
-                          '${cart.itemCount}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          '${provider.cartCount}',
+                          style: const TextStyle(color: Colors.white, fontSize: 10),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -61,223 +72,176 @@ class CatalogScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(12),
+      body: Consumer<DatabaseProvider>(
+        builder: (context, provider, child) {
+          if (provider.products.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          List<Map<String, dynamic>> filteredProducts = provider.products;
+          if (_searchQuery.isNotEmpty) {
+            filteredProducts = provider.products.where((p) =>
+                p['name'].toLowerCase().contains(_searchQuery.toLowerCase())
+            ).toList();
+          }
+
+          return Column(
+            children: [
+              // Search Bar
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: TextField(
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Search parts...',
+                    prefixIcon: const Icon(Icons.search, color: Color(0xFF2563EB)),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        setState(() {
+                          _searchQuery = '';
+                        });
+                      },
+                    )
+                        : null,
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
               ),
-              child: const Row(
-                children: [
-                  Icon(Icons.search, color: Color(0xFF2563EB)),
-                  SizedBox(width: 12),
-                  Text('Search parts...', style: TextStyle(color: Colors.grey)),
-                ],
+
+              // Results count
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${filteredProducts.length} parts found',
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
 
-          // Categories Filter
-          SizedBox(
-            height: 50,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: [
-                _buildFilterChip('All', true),
-                const SizedBox(width: 8),
-                _buildFilterChip('Engine', false),
-                const SizedBox(width: 8),
-                _buildFilterChip('Brakes', false),
-                const SizedBox(width: 8),
-                _buildFilterChip('Electric', false),
-                const SizedBox(width: 8),
-                _buildFilterChip('Body', false),
-                const SizedBox(width: 8),
-                _buildFilterChip('Suspension', false),
-                const SizedBox(width: 8),
-                _buildFilterChip('Transmission', false),
-              ],
-            ),
-          ),
+              const SizedBox(height: 8),
 
-          const SizedBox(height: 8),
-
-          // Results count
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('8 parts found', style: TextStyle(color: Colors.grey)),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          // Parts List
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _buildCatalogPartCard(context, 'Premium Brake Pads', 'Brakes', 'KES 3,500', 3500.0, 4.8, true),
-                const SizedBox(height: 12),
-                _buildCatalogPartCard(context, 'Engine Oil Filter', 'Engine', 'KES 1,200', 1200.0, 4.6, true),
-                const SizedBox(height: 12),
-                _buildCatalogPartCard(context, 'Alternator', 'Electric', 'KES 8,500', 8500.0, 4.7, true),
-                const SizedBox(height: 12),
-                _buildCatalogPartCard(context, 'Shock Absorber', 'Suspension', 'KES 6,200', 6200.0, 4.5, false),
-                const SizedBox(height: 12),
-                _buildCatalogPartCard(context, 'Headlight Assembly', 'Body', 'KES 4,800', 4800.0, 4.4, true),
-                const SizedBox(height: 12),
-                _buildCatalogPartCard(context, 'Radiator', 'Engine', 'KES 7,200', 7200.0, 4.4, true),
-                const SizedBox(height: 12),
-                _buildCatalogPartCard(context, 'Spark Plugs', 'Engine', 'KES 1,800', 1800.0, 4.7, true),
-                const SizedBox(height: 12),
-                _buildCatalogPartCard(context, 'Brake Rotors', 'Brakes', 'KES 4,500', 4500.0, 4.6, true),
-              ],
-            ),
-          ),
-        ],
+              // Parts List
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: filteredProducts.length,
+                  itemBuilder: (context, index) {
+                    final product = filteredProducts[index];
+                    return _buildProductCard(product, provider);
+                  },
+                ),
+              ),
+            ],
+          );
+        },
       ),
       bottomNavigationBar: _buildBottomNavBar(context, 1),
     );
   }
 
-  Widget _buildFilterChip(String label, bool isSelected) {
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (selected) {},
-      selectedColor: const Color(0xFF2563EB),
-      backgroundColor: Colors.grey[200],
-      labelStyle: TextStyle(
-        color: isSelected ? Colors.white : Colors.black87,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-      ),
-    );
-  }
-
-  Widget _buildCatalogPartCard(BuildContext context, String name, String category, String price, double priceValue, double rating, bool inStock) {
-    return Consumer<CartProvider>(
-      builder: (context, cart, child) {
-        final quantity = cart.getItemQuantity(name);
-        return Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2563EB).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.car_repair, size: 40, color: Color(0xFF2563EB)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildProductCard(Map<String, dynamic> product, DatabaseProvider provider) {
+    final bool inStock = product['stock_quantity'] > 0;
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: const Color(0xFF2563EB).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.car_repair, size: 40, color: Color(0xFF2563EB)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(product['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 4),
+                  Row(
                     children: [
-                      Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      const SizedBox(height: 4),
-                      Text(category, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(Icons.star, size: 16, color: Color(0xFFf59e0b)),
-                          const SizedBox(width: 4),
-                          Text(rating.toString()),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: inStock ? Colors.green : Colors.red,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              inStock ? 'In Stock' : 'Out of Stock',
-                              style: const TextStyle(color: Colors.white, fontSize: 10),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        price,
-                        style: const TextStyle(
-                          color: Color(0xFFf59e0b),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                      const Icon(Icons.star, size: 16, color: Color(0xFFf59e0b)),
+                      const SizedBox(width: 4),
+                      Text('${product['rating']}'),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: inStock ? Colors.green : Colors.red,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          inStock ? 'In Stock' : 'Out of Stock',
+                          style: const TextStyle(color: Colors.white, fontSize: 10),
                         ),
                       ),
                     ],
                   ),
-                ),
-                if (quantity > 0)
-                  Container(
+                  const SizedBox(height: 4),
+                  Text(
+                    'KES ${product['price'].toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      color: Color(0xFFf59e0b),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Consumer<DatabaseProvider>(
+              builder: (context, cartProvider, child) {
+                final isInCart = cartProvider.cartItems.any((item) => item['product_id'] == product['id']);
+
+                if (isInCart) {
+                  return Container(
                     decoration: BoxDecoration(
                       color: const Color(0xFF2563EB).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          onPressed: () {
-                            cart.updateQuantity(name, quantity - 1);
-                          },
-                          icon: const Icon(Icons.remove, size: 18),
-                          color: const Color(0xFF2563EB),
-                        ),
-                        Text('$quantity', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        IconButton(
-                          onPressed: () {
-                            cart.updateQuantity(name, quantity + 1);
-                          },
-                          icon: const Icon(Icons.add, size: 18),
-                          color: const Color(0xFF2563EB),
-                        ),
-                      ],
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      child: Text('Added', style: TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.bold)),
                     ),
-                  )
-                else
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFf59e0b).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: IconButton(
-                      onPressed: inStock ? () {
-                        cart.addToCart(
-                          id: name,
-                          name: name,
-                          price: price,
-                          priceValue: priceValue,
-                          inStock: inStock,
-                        );
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('$name added to cart'), duration: const Duration(seconds: 1)),
-                        );
-                      } : null,
-                      icon: const Icon(Icons.add_shopping_cart, size: 20),
-                      color: inStock ? const Color(0xFFf59e0b) : Colors.grey,
-                    ),
-                  ),
-              ],
+                  );
+                }
+                return IconButton(
+                  onPressed: inStock ? () async {
+                    await provider.addToCart(product['id'], 1);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('${product['name']} added to cart'), duration: const Duration(seconds: 1)),
+                    );
+                  } : null,
+                  icon: const Icon(Icons.add_shopping_cart),
+                  color: inStock ? const Color(0xFF2563EB) : Colors.grey,
+                );
+              },
             ),
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
 
