@@ -7,7 +7,7 @@ import 'providers/network_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/api_demo_screen.dart';
 import 'screens/simple_home.dart';
-import 'widgets/network_status_widget.dart';
+import 'services/network_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,8 +22,25 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize network notification service
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final context = navigatorKey.currentContext!;
+      NetworkNotificationService().init(context);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +53,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'SpareDash',
         debugShowCheckedModeBanner: false,
+        navigatorKey: navigatorKey,
         theme: ThemeData(
           primaryColor: const Color(0xFF2563EB),
           useMaterial3: true,
@@ -51,15 +69,9 @@ class MyApp extends StatelessWidget {
         ),
         initialRoute: '/',
         routes: {
-          '/': (context) => NetworkStatusWidget(
-            child: const LoginScreen(),
-          ),
-          '/api-demo': (context) => NetworkStatusWidget(
-            child: const ApiDemoScreen(),
-          ),
-          '/home': (context) => NetworkStatusWidget(
-            child: const SimpleHomeScreen(),
-          ),
+          '/': (context) => const LoginScreen(),
+          '/api-demo': (context) => const ApiDemoScreen(),
+          '/home': (context) => const SimpleHomeScreen(),
         },
       ),
     );

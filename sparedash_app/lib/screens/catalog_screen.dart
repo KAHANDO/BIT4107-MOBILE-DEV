@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../providers/database_provider.dart';
+import '../providers/network_provider.dart';
+import '../widgets/network_indicator.dart';
 import 'simple_home.dart';
 import 'cart_screen.dart';
 import 'shipping_screen.dart';
 import 'profile_screen.dart';
-import '../providers/database_provider.dart';
 
 class CatalogScreen extends StatefulWidget {
   const CatalogScreen({super.key});
@@ -35,6 +37,11 @@ class _CatalogScreenState extends State<CatalogScreen> {
         backgroundColor: const Color(0xFF2563EB),
         foregroundColor: Colors.white,
         actions: [
+          // Network Status Indicator
+          const NetworkIndicator(),
+          const SizedBox(width: 8),
+
+          // Cart Icon with Badge
           Consumer<DatabaseProvider>(
             builder: (context, provider, child) {
               return Stack(
@@ -58,10 +65,17 @@ class _CatalogScreenState extends State<CatalogScreen> {
                           color: const Color(0xFFf59e0b),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
                         child: Text(
                           '${provider.cartCount}',
-                          style: const TextStyle(color: Colors.white, fontSize: 10),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -142,7 +156,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   itemCount: filteredProducts.length,
                   itemBuilder: (context, index) {
                     final product = filteredProducts[index];
-                    return _buildProductCard(product, provider);
+                    return _buildProductCard(context, product, provider);
                   },
                 ),
               ),
@@ -154,8 +168,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
     );
   }
 
-  Widget _buildProductCard(Map<String, dynamic> product, DatabaseProvider provider) {
+  Widget _buildProductCard(BuildContext context, Map<String, dynamic> product, DatabaseProvider provider) {
     final bool inStock = product['stock_quantity'] > 0;
+    final networkProvider = Provider.of<NetworkProvider>(context);
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -227,6 +243,24 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     ),
                   );
                 }
+
+                // Disable Add to Cart if no internet
+                if (!networkProvider.isConnected) {
+                  return Tooltip(
+                    message: 'No internet connection',
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        child: Text('Offline', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  );
+                }
+
                 return IconButton(
                   onPressed: inStock ? () async {
                     await provider.addToCart(product['id'], 1);

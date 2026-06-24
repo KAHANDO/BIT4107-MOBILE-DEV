@@ -10,7 +10,7 @@ class NetworkIndicator extends StatelessWidget {
     return Consumer<NetworkProvider>(
       builder: (context, networkProvider, child) {
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
             color: networkProvider.isConnected ? Colors.green : Colors.red,
             borderRadius: BorderRadius.circular(20),
@@ -21,14 +21,14 @@ class NetworkIndicator extends StatelessWidget {
               Icon(
                 networkProvider.isConnected ? Icons.wifi : Icons.wifi_off,
                 color: Colors.white,
-                size: 16,
+                size: 14,
               ),
               const SizedBox(width: 4),
               Text(
                 networkProvider.isConnected ? 'Online' : 'Offline',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 12,
+                  fontSize: 10,
                   fontWeight: FontWeight.bold,
                 ),
               ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/database_provider.dart';
+import '../providers/network_provider.dart';
+import '../widgets/network_indicator.dart';
 import 'simple_home.dart';
 import 'catalog_screen.dart';
 import 'shipping_screen.dart';
@@ -16,6 +18,11 @@ class CartScreen extends StatelessWidget {
         title: const Text('My Cart'),
         backgroundColor: const Color(0xFF2563EB),
         foregroundColor: Colors.white,
+        actions: [
+          // Network Status Indicator
+          const NetworkIndicator(),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Consumer<DatabaseProvider>(
         builder: (context, provider, child) {
@@ -192,29 +199,59 @@ class CartScreen extends StatelessWidget {
             isTotal: true,
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            height: 55,
-            child: ElevatedButton(
-              onPressed: () {
-                _showCheckoutDialog(context, provider);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFf59e0b),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+          Consumer<NetworkProvider>(
+            builder: (context, networkProvider, child) {
+              return SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton(
+                  onPressed: !networkProvider.isConnected
+                      ? null
+                      : () {
+                    _showCheckoutDialog(context, provider);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFf59e0b),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: !networkProvider.isConnected
+                      ? const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.wifi_off, color: Colors.white, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'No Internet - Checkout Disabled',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  )
+                      : const Text(
+                    'Proceed to Checkout',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
-              ),
-              child: const Text(
-                'Proceed to Checkout',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+              );
+            },
+          ),
+          if (!Provider.of<NetworkProvider>(context).isConnected)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text(
+                'Please connect to the internet to proceed with checkout',
+                style: TextStyle(color: Colors.red, fontSize: 12),
               ),
             ),
-          ),
         ],
       ),
     );

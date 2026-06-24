@@ -6,6 +6,8 @@ import 'shipping_screen.dart';
 import 'profile_screen.dart';
 import 'api_demo_screen.dart';
 import '../providers/database_provider.dart';
+import '../providers/network_provider.dart';
+import '../widgets/network_indicator.dart';
 
 class SimpleHomeScreen extends StatefulWidget {
   const SimpleHomeScreen({super.key});
@@ -54,6 +56,11 @@ class _SimpleHomeScreenState extends State<SimpleHomeScreen> {
         backgroundColor: const Color(0xFF2563EB),
         foregroundColor: Colors.white,
         actions: [
+          // Network Status Indicator
+          const NetworkIndicator(),
+          const SizedBox(width: 8),
+
+          // Cart Icon with Badge
           Consumer<DatabaseProvider>(
             builder: (context, provider, child) {
               return Stack(
@@ -351,7 +358,7 @@ class _SimpleHomeScreenState extends State<SimpleHomeScreen> {
 
                   const SizedBox(height: 20),
 
-                  // ============ API DEMO BUTTON (NEW) ============
+                  // API Demo Button
                   Container(
                     margin: const EdgeInsets.only(top: 10, bottom: 20),
                     child: ElevatedButton.icon(

@@ -6,34 +6,45 @@ class NetworkService {
   factory NetworkService() => _instance;
   NetworkService._internal();
 
-  // Stream for connectivity changes
   final Connectivity _connectivity = Connectivity();
   late Stream<ConnectivityResult> connectivityStream;
 
-  // Current connectivity status
   bool _isConnected = true;
   bool get isConnected => _isConnected;
 
-  // Initialize the service
+  // List of listeners for connection changes
+  final List<Function(bool)> _listeners = [];
+
   void init() {
     connectivityStream = _connectivity.onConnectivityChanged;
     _checkInitialConnectivity();
   }
 
-  // Check initial connectivity
   Future<void> _checkInitialConnectivity() async {
     final result = await _connectivity.checkConnectivity();
     _isConnected = result != ConnectivityResult.none;
   }
 
-  // Check current connectivity
   Future<bool> checkConnectivity() async {
     final result = await _connectivity.checkConnectivity();
     _isConnected = result != ConnectivityResult.none;
     return _isConnected;
   }
 
-  // Get connection type
+  void addListener(Function(bool) listener) {
+    _listeners.add(listener);
+  }
+
+  void removeListener(Function(bool) listener) {
+    _listeners.remove(listener);
+  }
+
+  void notifyListeners(bool isConnected) {
+    for (var listener in _listeners) {
+      listener(isConnected);
+    }
+  }
+
   static String getConnectionType(ConnectivityResult result) {
     switch (result) {
       case ConnectivityResult.wifi:
@@ -49,72 +60,5 @@ class NetworkService {
       default:
         return 'Unknown';
     }
-  }
-
-  // Show no internet dialog
-  static void showNoInternetDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.wifi_off, color: Colors.red),
-            SizedBox(width: 8),
-            Text('No Internet Connection'),
-          ],
-        ),
-        content: const Text(
-          'Please check your internet connection and try again.',
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // Retry connection
-              NetworkService().checkConnectivity();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2563EB),
-            ),
-            child: const Text('Retry'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Show connection restored snackbar
-  static void showConnectionRestored(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Row(
-          children: [
-            Icon(Icons.wifi, color: Colors.white),
-            SizedBox(width: 8),
-            Text('Internet connection restored!'),
-          ],
-        ),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  // Show connection lost snackbar
-  static void showConnectionLost(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Row(
-          children: [
-            Icon(Icons.wifi_off, color: Colors.white),
-            SizedBox(width: 8),
-            Text('Internet connection lost!'),
-          ],
-        ),
-        backgroundColor: Colors.red,
-        duration: Duration(seconds: 3),
-      ),
-    );
   }
 }
